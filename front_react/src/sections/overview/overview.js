@@ -55,7 +55,6 @@ export const Listcv = (props) => {
     formData.append('file', file);
     axios
       .post(apiUrl, formData, {headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${jwtToken}`
         }})
       .then((response) => {
