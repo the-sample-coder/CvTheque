@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import ArrowRightIcon from '@heroicons/react/24/solid/ArrowRightIcon';
 import ArrowUpOnSquareIcon from '@heroicons/react/24/solid/ArrowUpOnSquareIcon';
 import ArrowDownOnSquareIcon from '@heroicons/react/24/solid/ArrowDownOnSquareIcon';
-
+//comt pull 
 import {
   Box,
   Button,
@@ -47,6 +47,7 @@ export const Listcv = (props) => {
         console.error('Erreur lors de la récupération des CVs :', error);
       });
   }, []);
+  
   const handleImport = (e) => {
     e.preventDefault();
     const file = e.target.files[0];
