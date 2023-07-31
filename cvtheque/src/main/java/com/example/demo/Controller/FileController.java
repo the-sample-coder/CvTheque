@@ -1,0 +1,67 @@
+package com.example.demo.Controller;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.demo.domain.FileData;
+import com.example.demo.service.FileService;
+
+@RestController
+@RequestMapping("/file")
+public class FileController {
+
+    @Autowired
+    private FileService fileStorageService;
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<String> handleMaxUploadSizeException(MaxUploadSizeExceededException e) {
+        return ResponseEntity.status(413).body("File size exceeds the allowed limit.");
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
+        System.out.println("Received upload request.");
+        String response = fileStorageService.storeFile(file);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/download/{fileId}")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) throws IOException {
+        FileData fileData = fileStorageService.getFileById(fileId);
+
+        if (fileData != null) {
+            File file = new File(fileData.getFilePath());
+            byte[] fileContent = fileStorageService.getFileContent(file);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDispositionFormData("attachment", fileData.getName());
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+
+            return new ResponseEntity<>(fileContent, headers, HttpStatus.OK);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<List<FileData>> getAllFiles() {
+        List<FileData> files = fileStorageService.getAllFiles();
+        return ResponseEntity.ok(files);
+    }
+}
