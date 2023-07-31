@@ -53,10 +53,8 @@ Within the download you'll find the following directories and files:
 		├── _app.js
 		├── _document.js
 		├── account.js
-		├── companies.js
-		├── customers.js
+		├── cv.js
 		├── index.js
-		├── products.js
 		└── settings.js
 		└──  auth
 			├── login.js
