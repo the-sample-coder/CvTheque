@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import ArrowRightIcon from '@heroicons/react/24/solid/ArrowRightIcon';
 import ArrowUpOnSquareIcon from '@heroicons/react/24/solid/ArrowUpOnSquareIcon';
 import ArrowDownOnSquareIcon from '@heroicons/react/24/solid/ArrowDownOnSquareIcon';
+import PlusCircleIcon from '@heroicons/react/24/solid/PlusCircleIcon';
 
 import {
   Box,
@@ -22,7 +23,11 @@ import {
   TableRow,
   FormControl,
   InputLabel,
+  Input,
   MenuItem,
+  DialogTitle,
+  DialogContent,
+  Dialog,
   Select,
 } from '@mui/material';
 
@@ -35,22 +40,23 @@ export const Listcv = (props) => {
   const [cvs, setCvs] = useState([]); // State to store the list of CVs
   const [file, setFile] = useState(null); // State to store the selected file
   const jwtToken = sessionStorage.getItem('jwt');
-
-  const [metadata, setMetadata] = useState({
+  const [showDialog, setShowDialog] = useState(false);
+  
+  const  initialMetadata =  {
     contrat: '',
     source: '',
     niveau: '',
     disponibilite: '',
     profil: '',
-  });
+  };
+
+  const [metadata, setMetadata] = useState(initialMetadata);
 
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     console.log('Fichier sélectionné :', e.target.files[0]);
   };
-
-
   const handleMetadataChange = (event) => {
     const { name, value } = event.target;
     setMetadata({
@@ -80,19 +86,16 @@ export const Listcv = (props) => {
   }, []);
 
   const handleImport = () => {
-    // e.preventDefault();
-    // const file = e.target.files[0];
     const apiUrl = 'http://localhost:8082/file/upload';
     const formData = new FormData();
     formData.append('file', file);
-  
     metadata.contrat != '' ? formData.append('contrat', metadata.contrat) : null;
     metadata.source != '' ? formData.append('source', metadata.source) : null;
     metadata.niveau != '' ? formData.append('niveau', metadata.niveau) : null;
     metadata.disponibilite != '' ? formData.append('disponibilite', metadata.disponibilite) : null;
     metadata.profil != '' ? formData.append('profil', metadata.profil) : null;
-  
     console.log(formData);
+   
     axios
       .post(apiUrl, formData, {
         headers: {
@@ -117,6 +120,7 @@ export const Listcv = (props) => {
       .catch((error) => {
         console.error('Erreur lors de l\'importation du CV :', error);
       });
+      setMetadata(initialMetadata);
   };
 
   const handleDownload = (fileId) => {
@@ -129,7 +133,6 @@ export const Listcv = (props) => {
       .then((response) => {
         if (response.status === 200) {
           const fileName = response.headers['content-disposition'].split('filename=')[1].replace(/"/g, '');
-          // Create a blob object from the response data
           const blob = new Blob([response.data], { type: response.headers['content-type'] });
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -145,7 +148,6 @@ export const Listcv = (props) => {
         }
       })
   };
-
   return (
     <Card sx={sx}>
     <Box
@@ -155,6 +157,20 @@ export const Listcv = (props) => {
         py: 1
       }}
     ></Box>
+    <Stack  alignItems="center" direction="row"spacing={1}>
+    
+        <Button  color="inherit" onClick={() => setShowDialog(true)}
+         startIcon={(
+          <SvgIcon fontSize="small">
+            <PlusCircleIcon/>
+          </SvgIcon>)}
+        >
+                 Add CV
+        </Button>
+        </Stack>
+    <Dialog open={showDialog} onClose={() => setShowDialog(false)} fullWidth maxWidth="sm">
+    <DialogTitle>Formulaire d'importation</DialogTitle>
+    <DialogContent>
     <form >
       <Stack spacing={3} >
         <FormControl variant="outlined">
@@ -244,7 +260,11 @@ export const Listcv = (props) => {
             <MenuItem value="Autre">Autre</MenuItem>
           </Select>
         </FormControl>
-        <input type="file" onChange={handleFileChange} />  
+        <FormControl>
+        <input type="file" onChange={handleFileChange}  />  
+
+        </FormControl>
+
       <Box
         component="main"
         sx={{
@@ -263,9 +283,15 @@ export const Listcv = (props) => {
           component="span">
           Importer
         </Button>
+
+        <Button variant="outlined" color="error"onClick={() => setShowDialog(false)}>
+              Annuler
+            </Button>
       </Stack>
       </form>
-
+      </DialogContent>
+      </Dialog>
+     
       <CardHeader title="Latest Orders" />
       <Scrollbar sx={{ flexGrow: 1 }}>
         <Table>
@@ -305,7 +331,6 @@ export const Listcv = (props) => {
     </Card>
   );
 };
-
 Listcv.propTypes = {
   sx: PropTypes.object
 };
