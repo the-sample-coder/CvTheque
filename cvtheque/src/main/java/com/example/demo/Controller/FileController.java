@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,11 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.domain.FileData;
+import com.example.demo.domain.enums.Contrat;
+import com.example.demo.domain.enums.Disponibilite;
+import com.example.demo.domain.enums.NiveauEtude;
+import com.example.demo.domain.enums.ProfilCandidat;
+import com.example.demo.domain.enums.Source;
 import com.example.demo.service.FileService;
 
 @RestController
@@ -35,9 +41,23 @@ public class FileController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<String> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "contrat", required = false) String contratStr,
+            @RequestParam(value = "source", required = false) String sourceStr,
+            @RequestParam(value = "niveau", required = false) String niveauStr,
+            @RequestParam(value = "disponibilite", required = false) String disponibiliteStr,
+            @RequestParam(value = "profil", required = false) String profilStr) throws IOException {
         System.out.println("Received upload request.");
-        String response = fileStorageService.storeFile(file);
+
+        // Convert the nullable fields from String to the corresponding enumeration types
+        Contrat contrat = contratStr != null ? Contrat.valueOf(contratStr) : null;
+        Source source = sourceStr != null ? Source.valueOf(sourceStr) : null;
+        NiveauEtude niveau = niveauStr != null ? NiveauEtude.valueOf(niveauStr) : null;
+        Disponibilite disponibilite = disponibiliteStr != null ? Disponibilite.valueOf(disponibiliteStr) : null;
+        ProfilCandidat profil = profilStr != null ? ProfilCandidat.valueOf(profilStr) : null;
+
+        String response = fileStorageService.storeFile(file, contrat, source, niveau, disponibilite, profil);
         return ResponseEntity.ok(response);
     }
 
@@ -51,8 +71,8 @@ public class FileController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentDispositionFormData("attachment", fileData.getName());
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-
+            headers.setContentType(MediaType.valueOf(fileData.getType()));
+            // headers.set("Content-Disposition", "attachment; filename=" + fileData.getName());
             return new ResponseEntity<>(fileContent, headers, HttpStatus.OK);
         } else {
             return ResponseEntity.notFound().build();

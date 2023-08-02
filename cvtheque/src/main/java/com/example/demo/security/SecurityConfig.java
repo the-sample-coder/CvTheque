@@ -64,6 +64,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter  {
             config.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
             config.setAllowedMethods(Arrays.asList("*"));
             config.setAllowedHeaders(Arrays.asList("*"));
+            config.setExposedHeaders(Arrays.asList("Content-Disposition"));
             config.setAllowCredentials(true);
         config.applyPermitDefaultValues();
 

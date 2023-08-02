@@ -1,6 +1,5 @@
 package com.example.demo.service;
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,6 +20,11 @@ import java.util.List;
 import java.util.UUID;
 
 import com.example.demo.domain.FileData;
+import com.example.demo.domain.enums.Contrat;
+import com.example.demo.domain.enums.Disponibilite;
+import com.example.demo.domain.enums.NiveauEtude;
+import com.example.demo.domain.enums.ProfilCandidat;
+import com.example.demo.domain.enums.Source;
 import com.example.demo.Repository.FileDataRepo;
 
 @Service
@@ -33,9 +37,9 @@ public class FileService {
 
     // private final String FOLDER_PATH = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "File" + File.separator;
     private final String FOLDER_PATH = System.getProperty("user.home") + File.separator + "Files" + File.separator;
-    private final long MAX_FILE_SIZE_BYTES = 10485759; // 10MB  y
+    private final long MAX_FILE_SIZE_BYTES = 10485759; // 10MB  
 
-    public String storeFile(MultipartFile file) throws IOException {
+    public String storeFile(MultipartFile file, Contrat contrat, Source source, NiveauEtude niveau, Disponibilite disponibilite, ProfilCandidat profil) throws IOException {
         String response = new String();
 
         // this conditions does not work we deal with it in the controller
@@ -58,7 +62,7 @@ public class FileService {
         String filePath = FOLDER_PATH + fileName;
         LocalDateTime creationDate = LocalDateTime.now();
 
-        FileData fileDataEntity = new FileData(null, fileName, fileType, filePath, creationDate);
+        FileData fileDataEntity = new FileData(null, fileName, fileType, filePath, creationDate, contrat, source, niveau, disponibilite, profil);
 
         try (InputStream inputStream = file.getInputStream()) {
             Path targetLocation = Paths.get(filePath);
