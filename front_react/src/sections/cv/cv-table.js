@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useEffect, useState } from 'react'; 
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { format } from 'date-fns';
 import {
@@ -13,10 +13,9 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  Typography
+  Typography,
 } from '@mui/material';
 import { Scrollbar } from 'src/components/scrollbar';
-import { getInitials } from 'src/utils/get-initials';
 
 export const CvTable = (props) => {
   const {
@@ -31,21 +30,23 @@ export const CvTable = (props) => {
     page = 0,
     rowsPerPage = 0,
     selected = [],
-    onImport
+    onImport,
   } = props;
 
-  const selectedSome = (selected.length > 0) && (selected.length < items.length);
-  const selectedAll = (items.length > 0) && (selected.length === items.length);
+  const selectedSome = selected.length > 0 && selected.length < items.length;
+  const selectedAll = items.length > 0 && selected.length === items.length;
   const [cvs, setCvs] = useState([]); // State to store the list of CVs
   const jwtToken = sessionStorage.getItem('jwt');
 
   useEffect(() => {
     const apiUrl = 'http://localhost:8082/file/list';
     axios
-      .get(apiUrl, {headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-        }})
+      .get(apiUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwtToken}`,
+        },
+      })
       .then((response) => {
         console.log('Données CV récupérées :', response.data); // Vérifiez les données récupérées dans la console
         setCvs(response.data); // Met à jour le state avec les données récupérées
@@ -54,12 +55,6 @@ export const CvTable = (props) => {
         console.error('Erreur lors de la récupération des CVs :', error);
       });
   }, []);
-
-  const handleImport = () => {
-    const selectedCvIds = selected;
-    onImport(selectedCvIds);
-  };
-
 
   return (
     <Card>
@@ -81,26 +76,16 @@ export const CvTable = (props) => {
                     }}
                   />
                 </TableCell>
-                <TableCell>
-                  Cv Name
-                </TableCell>
-                <TableCell>
-                  Date de Creation
-                </TableCell>
-                <TableCell>
-                  Pourcentage
-                </TableCell>
+                <TableCell>Cv Name</TableCell>
+                <TableCell>Date de Creation</TableCell>
+                <TableCell>Pourcentage</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {cvs.map((cv) => {
                 const isSelected = selected.includes(cv.id);
                 return (
-                  <TableRow
-                    hover
-                    key={cv.id}
-                    selected={isSelected}
-                  >
+                  <TableRow hover key={cv.id} selected={isSelected}>
                     <TableCell padding="checkbox">
                       <Checkbox
                         checked={isSelected}
@@ -114,22 +99,18 @@ export const CvTable = (props) => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Stack
-                        alignItems="center"
-                        direction="row"
-                        spacing={2}
-                      >
+                      <Stack alignItems="center" direction="row" spacing={2}>
                         <Typography variant="subtitle2">
                           {cv.name}
                         </Typography>
                       </Stack>
                     </TableCell>
                     <TableCell>
-                    {cv.creationDate ? format(new Date(cv.creationDate), 'dd/MM/yyyy') : 'N/A'}
+                      {cv.creationDate
+                        ? format(new Date(cv.creationDate), 'dd/MM/yyyy')
+                        : 'N/A'}
                     </TableCell>
-                    <TableCell>
-                      Null
-                    </TableCell>
+                    <TableCell>Null</TableCell>
                   </TableRow>
                 );
               })}
@@ -161,5 +142,5 @@ CvTable.propTypes = {
   onSelectOne: PropTypes.func,
   page: PropTypes.number,
   rowsPerPage: PropTypes.number,
-  selected: PropTypes.array
+  selected: PropTypes.array,
 };
