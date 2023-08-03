@@ -5,6 +5,8 @@ import PropTypes from 'prop-types';
 import ArrowRightIcon from '@heroicons/react/24/solid/ArrowRightIcon';
 import ArrowUpOnSquareIcon from '@heroicons/react/24/solid/ArrowUpOnSquareIcon';
 import ArrowDownOnSquareIcon from '@heroicons/react/24/solid/ArrowDownOnSquareIcon';
+import PlusCircleIcon from '@heroicons/react/24/solid/PlusCircleIcon';
+import EyeIcon from '@heroicons/react/24/solid/EyeIcon';
 
 import {
   Box,
@@ -22,8 +24,13 @@ import {
   TableRow,
   FormControl,
   InputLabel,
+  Input,
   MenuItem,
+  DialogTitle,
+  DialogContent,
+  Dialog,
   Select,
+  Checkbox
 } from '@mui/material';
 
 import { Scrollbar } from 'src/components/scrollbar';
@@ -31,26 +38,38 @@ import Head from 'next/head';
 
 export const Listcv = (props) => {
   const { sx } = props;
+  const [selectedCvs, setSelectedCvs] = useState([]); // État pour stocker les IDs des CVs sélectionnés
 
   const [cvs, setCvs] = useState([]); // State to store the list of CVs
   const [file, setFile] = useState(null); // State to store the selected file
   const jwtToken = sessionStorage.getItem('jwt');
-
-  const [metadata, setMetadata] = useState({
+  const [showDialog, setShowDialog] = useState(false);
+  
+  const  initialMetadata =  {
     contrat: '',
     source: '',
     niveau: '',
     disponibilite: '',
     profil: '',
-  });
+  };
+
+
+  const handleCheckboxChange = (cvId) => {
+    // Si l'ID est déjà dans le tableau des CVs sélectionnés, on le retire ; sinon, on l'ajoute
+    setSelectedCvs((prevSelectedCvs) =>
+      prevSelectedCvs.includes(cvId)
+        ? prevSelectedCvs.filter((id) => id !== cvId)
+        : [...prevSelectedCvs, cvId]
+    );
+  };
+
+  const [metadata, setMetadata] = useState(initialMetadata);
 
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     console.log('Fichier sélectionné :', e.target.files[0]);
   };
-
-
   const handleMetadataChange = (event) => {
     const { name, value } = event.target;
     setMetadata({
@@ -80,19 +99,16 @@ export const Listcv = (props) => {
   }, []);
 
   const handleImport = () => {
-    // e.preventDefault();
-    // const file = e.target.files[0];
     const apiUrl = 'http://localhost:8082/file/upload';
     const formData = new FormData();
     formData.append('file', file);
-  
     metadata.contrat != '' ? formData.append('contrat', metadata.contrat) : null;
     metadata.source != '' ? formData.append('source', metadata.source) : null;
     metadata.niveau != '' ? formData.append('niveau', metadata.niveau) : null;
     metadata.disponibilite != '' ? formData.append('disponibilite', metadata.disponibilite) : null;
     metadata.profil != '' ? formData.append('profil', metadata.profil) : null;
-  
     console.log(formData);
+   
     axios
       .post(apiUrl, formData, {
         headers: {
@@ -117,6 +133,7 @@ export const Listcv = (props) => {
       .catch((error) => {
         console.error('Erreur lors de l\'importation du CV :', error);
       });
+      setMetadata(initialMetadata);
   };
 
   const handleDownload = (fileId) => {
@@ -129,7 +146,6 @@ export const Listcv = (props) => {
       .then((response) => {
         if (response.status === 200) {
           const fileName = response.headers['content-disposition'].split('filename=')[1].replace(/"/g, '');
-          // Create a blob object from the response data
           const blob = new Blob([response.data], { type: response.headers['content-type'] });
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -146,6 +162,18 @@ export const Listcv = (props) => {
       })
   };
 
+  const handleDownloadSelected = () => {
+    // Vérifiez s'il y a des CVs sélectionnés
+    if (selectedCvs.length === 0) {
+      alert('Veuillez sélectionner au moins un CV pour le télécharger.');
+      return;
+    }
+  
+    // Téléchargez chaque CV sélectionné un par un
+    selectedCvs.forEach((cvId) => {
+      handleDownload(cvId);
+    });
+  };
   return (
     <Card sx={sx}>
     <Box
@@ -155,6 +183,31 @@ export const Listcv = (props) => {
         py: 1
       }}
     ></Box>
+    <Stack  alignItems="center" direction="row"spacing={1}>
+    
+        <Button  color="inherit" onClick={() => setShowDialog(true)}
+         startIcon={(
+          <SvgIcon fontSize="small">
+            <PlusCircleIcon/>
+          </SvgIcon>)}
+        >
+                 Add CV
+        </Button>
+        <Button
+                    color="inherit"
+                    startIcon={
+                      <SvgIcon fontSize="small">
+                        <ArrowDownOnSquareIcon />
+                      </SvgIcon>
+                    }
+                    onClick={ handleDownloadSelected}
+                  >
+                    Télécharger
+                  </Button>
+        </Stack>
+    <Dialog open={showDialog} onClose={() => setShowDialog(false)} fullWidth maxWidth="sm">
+    <DialogTitle>Formulaire d'importation</DialogTitle>
+    <DialogContent>
     <form >
       <Stack spacing={3} >
         <FormControl variant="outlined">
@@ -244,7 +297,11 @@ export const Listcv = (props) => {
             <MenuItem value="Autre">Autre</MenuItem>
           </Select>
         </FormControl>
-        <input type="file" onChange={handleFileChange} />  
+        <FormControl>
+        <input type="file" onChange={handleFileChange}  />  
+
+        </FormControl>
+
       <Box
         component="main"
         sx={{
@@ -263,14 +320,21 @@ export const Listcv = (props) => {
           component="span">
           Importer
         </Button>
+
+        <Button variant="outlined" color="error"onClick={() => setShowDialog(false)}>
+              Annuler
+            </Button>
       </Stack>
       </form>
-
+      </DialogContent>
+      </Dialog>
+     
       <CardHeader title="Latest Orders" />
       <Scrollbar sx={{ flexGrow: 1 }}>
-        <Table>
+      <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Selectionner</TableCell> {/* Nouvelle colonne pour la checkbox */}
               <TableCell>Nom du CV</TableCell>
               <TableCell>Date de création</TableCell>
               <TableCell>Action</TableCell>
@@ -279,22 +343,30 @@ export const Listcv = (props) => {
           <TableBody>
             {cvs.map((cv) => (
               <TableRow key={cv.id}>
+                <TableCell>
+                  {/* Utilisez la balise Checkbox de MUI */}
+                  <Checkbox
+                    checked={selectedCvs.includes(cv.id)}
+                    onChange={() => handleCheckboxChange(cv.id)}
+                  />
+                </TableCell>
                 <TableCell>{cv.name}</TableCell>
                 <TableCell>
-                {cv.creationDate ? format(new Date(cv.creationDate), 'dd/MM/yyyy') : 'N/A'}
-                </TableCell>                
+                  {cv.creationDate
+                    ? format(new Date(cv.creationDate), 'dd/MM/yyyy')
+                    : 'N/A'}
+                </TableCell>
                 <TableCell>
-                  <Button
-                    color="inherit"
-                    startIcon={(
-                      <SvgIcon fontSize="small">
-                        <ArrowDownOnSquareIcon />
-                      </SvgIcon>
-                    )}
-                    onClick={() => handleDownload(cv.id)}
-                  >
-                    Télécharger
-                  </Button>
+
+                <Button
+                  color="inherit"
+                  startIcon={(
+                    <SvgIcon fontSize="small">
+                      <EyeIcon />
+                    </SvgIcon>)}
+                 >
+                  view
+                </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -303,9 +375,10 @@ export const Listcv = (props) => {
       </Scrollbar>
       <Divider />
     </Card>
+
+    
   );
 };
-
 Listcv.propTypes = {
   sx: PropTypes.object
 };
