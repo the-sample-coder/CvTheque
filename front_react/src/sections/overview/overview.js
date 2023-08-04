@@ -7,6 +7,10 @@ import ArrowUpOnSquareIcon from '@heroicons/react/24/solid/ArrowUpOnSquareIcon';
 import ArrowDownOnSquareIcon from '@heroicons/react/24/solid/ArrowDownOnSquareIcon';
 import PlusCircleIcon from '@heroicons/react/24/solid/PlusCircleIcon';
 import EyeIcon from '@heroicons/react/24/solid/EyeIcon';
+import { ToastContainer,toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+
 
 import {
   Box,
@@ -30,7 +34,12 @@ import {
   DialogContent,
   Dialog,
   Select,
-  Checkbox
+  Checkbox,
+  Typography,
+  DialogActions,
+  TextField,
+  Unstable_Grid2 as Grid,
+  CardContent
 } from '@mui/material';
 
 import { Scrollbar } from 'src/components/scrollbar';
@@ -38,13 +47,14 @@ import Head from 'next/head';
 
 export const Listcv = (props) => {
   const { sx } = props;
-  const [selectedCvs, setSelectedCvs] = useState([]); // État pour stocker les IDs des CVs sélectionnés
-
-  const [cvs, setCvs] = useState([]); // State to store the list of CVs
-  const [file, setFile] = useState(null); // State to store the selected file
+  const [selectedCvs, setSelectedCvs] = useState([]); 
+  const [cvs, setCvs] = useState([]); 
+  const [file, setFile] = useState(null); 
   const jwtToken = sessionStorage.getItem('jwt');
   const [showDialog, setShowDialog] = useState(false);
-  
+  const [selectedCvMetadata, setSelectedCvMetadata] = useState(null);
+  const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+
   const  initialMetadata =  {
     contrat: '',
     source: '',
@@ -52,20 +62,14 @@ export const Listcv = (props) => {
     disponibilite: '',
     profil: '',
   };
-
-
   const handleCheckboxChange = (cvId) => {
-    // Si l'ID est déjà dans le tableau des CVs sélectionnés, on le retire ; sinon, on l'ajoute
     setSelectedCvs((prevSelectedCvs) =>
       prevSelectedCvs.includes(cvId)
         ? prevSelectedCvs.filter((id) => id !== cvId)
         : [...prevSelectedCvs, cvId]
     );
   };
-
   const [metadata, setMetadata] = useState(initialMetadata);
-
-
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     console.log('Fichier sélectionné :', e.target.files[0]);
@@ -90,8 +94,8 @@ export const Listcv = (props) => {
         'Authorization': `Bearer ${jwtToken}`
         }})
       .then((response) => {
-        console.log('Données CV récupérées :', response.data); // Vérifiez les données récupérées dans la console
-        setCvs(response.data); // Met à jour le state avec les données récupérées
+        console.log('Données CV récupérées :', response.data); 
+        setCvs(response.data); 
       })
       .catch((error) => {
         console.error('Erreur lors de la récupération des CVs :', error);
@@ -117,16 +121,16 @@ export const Listcv = (props) => {
       })
       .then((response) => {
         console.log('CV importé avec succès !', response.data);
-        // After successful upload, refresh the list of CVs by making the API call again
-        axios
-          .get('http://localhost:8082/file/list', {headers: {
+        toast.success('CV importé avec succès !');       
+    axios
+      .get('http://localhost:8082/file/list', {headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${jwtToken}`
             }})
-          .then((response) => {
-            setCvs(response.data); // Update the state with the new list of CVs
+      .then((response) => {
+            setCvs(response.data); 
           })
-          .catch((error) => {
+      .catch((error) => {
             console.error('Erreur lors de la récupération des CVs :', error);
           });
       })
@@ -163,19 +167,123 @@ export const Listcv = (props) => {
   };
 
   const handleDownloadSelected = () => {
-    // Vérifiez s'il y a des CVs sélectionnés
     if (selectedCvs.length === 0) {
       alert('Veuillez sélectionner au moins un CV pour le télécharger.');
       return;
     }
-  
-    // Téléchargez chaque CV sélectionné un par un
     selectedCvs.forEach((cvId) => {
       handleDownload(cvId);
     });
   };
+
+  const handleViewMetadata = (cvId) =>{
+    const selectedCv = cvs.find((cv)=> cv.id === cvId);
+    setSelectedCvMetadata(selectedCv);
+    setMetadataDialogOpen(true);
+  };
+  const handleCloseMetadataDialog = () => {
+    setMetadataDialogOpen(false);
+  };
   return (
     <Card sx={sx}>
+      <Dialog
+            open={metadataDialogOpen}
+            onClose={handleCloseMetadataDialog}
+            maxWidth="sm"
+            fullWidth
+          >            
+        <DialogContent>
+             {selectedCvMetadata && (
+                <Card>
+                <CardHeader    
+          title="Métadonnées"/>
+                <CardContent sx={{ pt: 0 }}>
+                <Box >
+                <Grid
+                container
+                spacing={3}
+                >
+                <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Contrat"
+                  variant="outlined"
+                  value={selectedCvMetadata.contrat}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                 
+                />
+                </Grid>
+                <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Source Candidat"
+                  variant="outlined"
+                  value={selectedCvMetadata.source}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                
+                />
+                </Grid>
+                <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Niveau d'étude"
+                  variant="outlined"
+                  value={selectedCvMetadata.niveau}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+               
+                />
+                 </Grid>
+                 <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Disponibilités"
+                  variant="outlined"
+                  value={selectedCvMetadata.disponibilite}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+          
+                />
+                 </Grid>
+                 <Grid
+                xs={12}
+                md={12}>
+                <TextField
+                  fullWidth
+                  label="Profil Candidat"
+                  variant="outlined"
+                  value={selectedCvMetadata.profil}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                />
+              </Grid>
+              </Grid>
+              </Box>
+              </CardContent>
+              </Card>
+          )}
+          </DialogContent>
+          <DialogActions>
+              <Button onClick={handleCloseMetadataDialog} color="primary">
+                Fermer
+              </Button>
+            </DialogActions>
+            </Dialog>
     <Box
       component="main"
       sx={{
@@ -364,6 +472,7 @@ export const Listcv = (props) => {
                     <SvgIcon fontSize="small">
                       <EyeIcon />
                     </SvgIcon>)}
+                  onClick={() => handleViewMetadata(cv.id)}  
                  >
                   view
                 </Button>
@@ -374,6 +483,8 @@ export const Listcv = (props) => {
         </Table>
       </Scrollbar>
       <Divider />
+      <ToastContainer
+      position="bottom-left" />
     </Card>
 
     
