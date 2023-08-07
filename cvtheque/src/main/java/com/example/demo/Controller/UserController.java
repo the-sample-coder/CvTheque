@@ -39,17 +39,45 @@ public class UserController {
         return userRepository.findAll();
     }
 
+    @GetMapping("/findByUsername")
+    @ResponseBody
+    public User findUser(@RequestParam("username") String username) {
+        if(userRepository.findByUsername(username) == null)
+            return null;
+        else
+            return userRepository.findByUsername(username);
+    }
+
     @PutMapping("/{id}")
     public String updateUser(@RequestBody User user, @PathVariable Long id) {
         
         if (userRepository.findById(id).isPresent()) {
             User existingUser = userRepository.findById(id).get();
-            existingUser.setFirstname(user.getFirstname());
-            existingUser.setLastname(user.getLastname());
-            existingUser.setEmail(user.getEmail());
-            existingUser.setUsername(user.getUsername());
-            existingUser.setPassword(user.getPassword());
-            existingUser.setRole(user.getRole());
+            if (user.getFirstname() != null) {
+                existingUser.setFirstname(user.getFirstname());
+            }
+
+            if (user.getLastname() != null) {
+                existingUser.setLastname(user.getLastname());
+            }
+
+            if (user.getEmail() != null) {
+                existingUser.setEmail(user.getEmail());
+            }
+
+            if (user.getUsername() != null) {
+                existingUser.setUsername(user.getUsername());
+            }
+
+            if (user.getPassword() != null) {
+                String encodedPassword = bCryptPasswordEncoder.encode(user.getPassword());
+                existingUser.setPassword(encodedPassword);
+            }
+
+            if (user.getRole() != null) {
+                existingUser.setRole(user.getRole());
+            }
+
             userRepository.save(existingUser);
             return "User has been updated successfully";
         } else {

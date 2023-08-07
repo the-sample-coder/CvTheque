@@ -22,7 +22,7 @@ public class CvthequeApplication {
 	@Bean
 	CommandLineRunner runner(){
 		return args -> {
-			repository.save(new User("user", "$2a$04$1.YhMIgNX/8TkCKGFUONWO1waedKhQ5KrnB30fl0Q01QKqmzLf.Zi", "USER"));
+			repository.save(new User("user", "$2a$04$1.YhMIgNX/8TkCKGFUONWO1waedKhQ5KrnB30fl0Q01QKqmzLf.Zi", "USER", "userFirstname", "userLastname", "user@gmail.com"));
 			repository.save(new User("admin", "admin", "ADMIN"));
 		};
 	}

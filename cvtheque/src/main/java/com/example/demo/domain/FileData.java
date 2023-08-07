@@ -71,4 +71,8 @@ public class FileData {
         return this.type;
     }
 
+    public Long getId(){
+        return this.id;
+    }   
+
 }

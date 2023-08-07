@@ -73,8 +73,8 @@ public class FileService {
             response = ("Failed to store the file: " + fileName);
             return response;
         }
-        response= "File uploaded successfully with ID: " + fileDataEntity.getId();
         fileDataRepository.save(fileDataEntity);
+        response= "File uploaded successfully with ID: " + fileDataEntity.getId();
         return response;
     }
 
