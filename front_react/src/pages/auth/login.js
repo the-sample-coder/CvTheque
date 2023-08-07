@@ -61,6 +61,7 @@ const Page = () => {
         console.log('JWT Token:', jwtToken);
         if(jwtToken !== null){
           sessionStorage.setItem('jwt', jwtToken);
+          sessionStorage.setItem('username', values.username);
           await auth.skip();
           router.push('/');
 

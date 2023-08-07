@@ -7,6 +7,8 @@ import ArrowUpOnSquareIcon from '@heroicons/react/24/solid/ArrowUpOnSquareIcon';
 import ArrowDownOnSquareIcon from '@heroicons/react/24/solid/ArrowDownOnSquareIcon';
 import PlusCircleIcon from '@heroicons/react/24/solid/PlusCircleIcon';
 import EyeIcon from '@heroicons/react/24/solid/EyeIcon';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import {
   Box,
@@ -30,7 +32,12 @@ import {
   DialogContent,
   Dialog,
   Select,
-  Checkbox
+  Checkbox,
+  Typography,
+  DialogActions,
+  TextField,
+  Unstable_Grid2 as Grid,
+  CardContent
 } from '@mui/material';
 
 import { Scrollbar } from 'src/components/scrollbar';
@@ -44,6 +51,10 @@ export const Listcv = (props) => {
   const [file, setFile] = useState(null); // State to store the selected file
   const jwtToken = sessionStorage.getItem('jwt');
   const [showDialog, setShowDialog] = useState(false);
+
+  const [selectedCvMetadata, setSelectedCvMetadata] = useState(null);
+  const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+
   
   const  initialMetadata =  {
     contrat: '',
@@ -102,6 +113,7 @@ export const Listcv = (props) => {
     const apiUrl = 'http://localhost:8082/file/upload';
     const formData = new FormData();
     formData.append('file', file);
+    
     metadata.contrat != '' ? formData.append('contrat', metadata.contrat) : null;
     metadata.source != '' ? formData.append('source', metadata.source) : null;
     metadata.niveau != '' ? formData.append('niveau', metadata.niveau) : null;
@@ -109,15 +121,48 @@ export const Listcv = (props) => {
     metadata.profil != '' ? formData.append('profil', metadata.profil) : null;
     console.log(formData);
    
-    axios
+    if(file.size> 10485760){
+      toast.error('La taille du fichier est trop large (ne dépassez pas 10MB)', {
+        position: "bottom-left",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        });
+    }else{
+      axios
       .post(apiUrl, formData, {
         headers: {
           'Authorization': `Bearer ${jwtToken}`
         }
       })
       .then((response) => {
-        console.log('CV importé avec succès !', response.data);
-        // After successful upload, refresh the list of CVs by making the API call again
+        if(response.data.includes('Invalid file extension')){
+          toast.error("Extension de fichier invalide. Seuls les fichiers Word et PDF sont autorisés", {
+            position: "bottom-left",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
+        }else{
+          toast.success("CV importé avec succès", {
+            position: "bottom-left",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
+        }      // After successful upload, refresh the list of CVs by making the API call again
         axios
           .get('http://localhost:8082/file/list', {headers: {
             'Content-Type': 'application/json',
@@ -133,6 +178,8 @@ export const Listcv = (props) => {
       .catch((error) => {
         console.error('Erreur lors de l\'importation du CV :', error);
       });
+    }
+    
       setMetadata(initialMetadata);
   };
 
@@ -165,7 +212,16 @@ export const Listcv = (props) => {
   const handleDownloadSelected = () => {
     // Vérifiez s'il y a des CVs sélectionnés
     if (selectedCvs.length === 0) {
-      alert('Veuillez sélectionner au moins un CV pour le télécharger.');
+      toast.error('Veuillez sélectionner au moins un CV pour le télécharger.', {
+        position: "bottom-left",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        });
       return;
     }
   
@@ -174,8 +230,116 @@ export const Listcv = (props) => {
       handleDownload(cvId);
     });
   };
+  const handleViewMetadata = (cvId) =>{
+    const selectedCv = cvs.find((cv)=> cv.id === cvId);
+    setSelectedCvMetadata(selectedCv);
+    setMetadataDialogOpen(true);
+  };
+  const handleCloseMetadataDialog = () => {
+    setMetadataDialogOpen(false);
+  };
+
+
   return (
     <Card sx={sx}>
+       <Dialog
+            open={metadataDialogOpen}
+            onClose={handleCloseMetadataDialog}
+            maxWidth="sm"
+            fullWidth
+          >            
+        <DialogContent>
+             {selectedCvMetadata && (
+                <Card>
+                <CardHeader    
+          title="Métadonnées"/>
+                <CardContent sx={{ pt: 0 }}>
+                <Box >
+                <Grid
+                container
+                spacing={3}
+                >
+                <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Contrat"
+                  variant="outlined"
+                  value={selectedCvMetadata.contrat}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+
+                />
+                </Grid>
+                <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Source Candidat"
+                  variant="outlined"
+                  value={selectedCvMetadata.source}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+
+                />
+                </Grid>
+                <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Niveau d'étude"
+                  variant="outlined"
+                  value={selectedCvMetadata.niveau}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+
+                />
+                 </Grid>
+                 <Grid
+                xs={12}
+                md={6}>
+                <TextField
+                  fullWidth
+                  label="Disponibilités"
+                  variant="outlined"
+                  value={selectedCvMetadata.disponibilite}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+
+                />
+                 </Grid>
+                 <Grid
+                xs={12}
+                md={12}>
+                <TextField
+                  fullWidth
+                  label="Profil Candidat"
+                  variant="outlined"
+                  value={selectedCvMetadata.profil}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                />
+          </Grid>
+          </Grid>
+          </Box>
+          </CardContent>
+          </Card>
+          )}
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={handleCloseMetadataDialog} color="primary">
+          Fermer
+        </Button>
+      </DialogActions>
+    </Dialog>
     <Box
       component="main"
       sx={{
@@ -329,7 +493,7 @@ export const Listcv = (props) => {
       </DialogContent>
       </Dialog>
      
-      <CardHeader title="Latest Orders" />
+      <CardHeader title="Liste de CVs" />
       <Scrollbar sx={{ flexGrow: 1 }}>
       <Table>
           <TableHead>
@@ -364,6 +528,7 @@ export const Listcv = (props) => {
                     <SvgIcon fontSize="small">
                       <EyeIcon />
                     </SvgIcon>)}
+                    onClick={() => handleViewMetadata(cv.id)}
                  >
                   view
                 </Button>
@@ -374,8 +539,9 @@ export const Listcv = (props) => {
         </Table>
       </Scrollbar>
       <Divider />
+      <ToastContainer />
     </Card>
-
+    
     
   );
 };

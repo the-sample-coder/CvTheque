@@ -13,10 +13,13 @@ export const AccountPopover = (props) => {
     () => {
       onClose?.();
       auth.signOut();
+      sessionStorage.clear();
       router.push('/auth/login');
     },
     [onClose, auth, router]
   );
+
+  const username = sessionStorage.getItem('username');
 
   return (
     <Popover
@@ -36,13 +39,13 @@ export const AccountPopover = (props) => {
         }}
       >
         <Typography variant="overline">
-          Account
+          Account 
         </Typography>
         <Typography
           color="text.secondary"
           variant="body2"
         >
-          Anika Visser
+          {username}
         </Typography>
       </Box>
       <Divider />

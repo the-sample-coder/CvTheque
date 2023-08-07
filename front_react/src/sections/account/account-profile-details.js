@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -10,34 +10,36 @@ import {
   TextField,
   Unstable_Grid2 as Grid
 } from '@mui/material';
+import { SERVER_URL } from 'src/pages/auth/constants';
+import { set } from 'nprogress';
+import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const states = [
+const roles = [
   {
-    value: 'alabama',
-    label: 'Alabama'
+    value: ' USER',
+    label: 'User'
   },
   {
-    value: 'new-york',
-    label: 'New York'
-  },
-  {
-    value: 'san-francisco',
-    label: 'San Francisco'
-  },
-  {
-    value: 'los-angeles',
-    label: 'Los Angeles'
+    value: 'ADMIN',
+    label: 'Admin'
   }
 ];
 
+
+
+
 export const AccountProfileDetails = () => {
+
+  const username1 = sessionStorage.getItem('username');
+
   const [values, setValues] = useState({
-    firstName: 'Anika',
-    lastName: 'Visser',
-    email: 'demo@devias.io',
-    phone: '',
-    state: 'los-angeles',
-    country: 'USA'
+    firstname: '',
+    lastname: '',
+    email: '',
+    username: username1,
+    role: '',
   });
 
   const handleChange = useCallback(
@@ -50,12 +52,49 @@ export const AccountProfileDetails = () => {
     []
   );
 
-  const handleSubmit = useCallback(
-    (event) => {
-      event.preventDefault();
-    },
-    []
-  );
+   const handleSubmit = () => {
+    axios.put(SERVER_URL + 'users/'+ values.id, values, {headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${jwtToken}`
+    }})
+    .then((response) => {
+      sessionStorage.setItem('username', values.username);
+
+      toast.success(response.data, {
+        position: "bottom-left",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    })};
+
+  const jwtToken = sessionStorage.getItem('jwt');
+
+  useEffect(() => {
+    const data={'username':username1};
+    const apiUrl = SERVER_URL + 'users/findByUsername';
+    
+    axios
+      .get(apiUrl, {params: data ,headers: {
+        'Authorization': `Bearer ${jwtToken}`
+        }})
+      .then((response) => {
+        // setValues(response.data);
+        if(response.data != ''){
+          setValues(response.data);
+        }else{
+          console.log("User not found");
+        }
+        
+      })
+      .catch((error) => {
+        console.error('Erreur lors de la récupération des utilisateurs :', error);
+      });
+  }, []);
 
   return (
     <form
@@ -80,25 +119,10 @@ export const AccountProfileDetails = () => {
               >
                 <TextField
                   fullWidth
-                  helperText="Please specify the first name"
-                  label="First name"
-                  name="firstName"
+                  label="Username"
+                  name="username"
                   onChange={handleChange}
-                  required
-                  value={values.firstName}
-                />
-              </Grid>
-              <Grid
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  fullWidth
-                  label="Last name"
-                  name="lastName"
-                  onChange={handleChange}
-                  required
-                  value={values.lastName}
+                  value={values.username}
                 />
               </Grid>
               <Grid
@@ -120,24 +144,12 @@ export const AccountProfileDetails = () => {
               >
                 <TextField
                   fullWidth
-                  label="Phone Number"
-                  name="phone"
-                  onChange={handleChange}
-                  type="number"
-                  value={values.phone}
-                />
-              </Grid>
-              <Grid
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  fullWidth
-                  label="Country"
-                  name="country"
+                  helperText="Please specify the first name"
+                  label="First name"
+                  name="firstname"
                   onChange={handleChange}
                   required
-                  value={values.country}
+                  value={values.firstname}
                 />
               </Grid>
               <Grid
@@ -146,15 +158,28 @@ export const AccountProfileDetails = () => {
               >
                 <TextField
                   fullWidth
-                  label="Select State"
-                  name="state"
+                  label="Last name"
+                  name="lastname"
+                  onChange={handleChange}
+                  required
+                  value={values.lastname}
+                />
+              </Grid>
+              <Grid
+                xs={12}
+                md={6}
+              >
+                <TextField
+                  fullWidth
+                  label="Select Role"
+                  name="role"
                   onChange={handleChange}
                   required
                   select
                   SelectProps={{ native: true }}
-                  value={values.state}
+                  value={values.role}
                 >
-                  {states.map((option) => (
+                  {roles.map((option) => (
                     <option
                       key={option.value}
                       value={option.value}
@@ -169,11 +194,15 @@ export const AccountProfileDetails = () => {
         </CardContent>
         <Divider />
         <CardActions sx={{ justifyContent: 'flex-end' }}>
-          <Button variant="contained">
-            Save details
+          <Button 
+            onClick={handleSubmit}
+            variant="contained">
+              Save details
           </Button>
         </CardActions>
       </Card>
+      <ToastContainer />
     </form>
+    
   );
 };
