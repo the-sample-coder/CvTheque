@@ -2,6 +2,7 @@ package com.example.demo.Controller;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,12 +22,15 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.domain.FileData;
+import com.example.demo.domain.GoogleDriveManager;
 import com.example.demo.domain.enums.Contrat;
 import com.example.demo.domain.enums.Disponibilite;
 import com.example.demo.domain.enums.NiveauEtude;
 import com.example.demo.domain.enums.ProfilCandidat;
 import com.example.demo.domain.enums.Source;
+import com.example.demo.service.DriveService;
 import com.example.demo.service.FileService;
+import com.google.api.services.drive.model.FileList;
 
 @RestController
 @RequestMapping("/file")
@@ -34,6 +38,9 @@ public class FileController {
 
     @Autowired
     private FileService fileStorageService;
+
+    @Autowired
+    private DriveService driveService;
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<String> handleMaxUploadSizeException(MaxUploadSizeExceededException e) {
@@ -47,10 +54,11 @@ public class FileController {
             @RequestParam(value = "source", required = false) String sourceStr,
             @RequestParam(value = "niveau", required = false) String niveauStr,
             @RequestParam(value = "disponibilite", required = false) String disponibiliteStr,
-            @RequestParam(value = "profil", required = false) String profilStr) throws IOException {
+            @RequestParam(value = "profil", required = false) String profilStr) throws Exception {
         System.out.println("Received upload request.");
 
-        // Convert the nullable fields from String to the corresponding enumeration types
+        // Convert the nullable fields from String to the corresponding enumeration
+        // types
         Contrat contrat = contratStr != null ? Contrat.valueOf(contratStr) : null;
         Source source = sourceStr != null ? Source.valueOf(sourceStr) : null;
         NiveauEtude niveau = niveauStr != null ? NiveauEtude.valueOf(niveauStr) : null;
@@ -62,17 +70,22 @@ public class FileController {
     }
 
     @GetMapping("/download/{fileId}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) throws IOException {
+    public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) throws IOException, GeneralSecurityException {
         FileData fileData = fileStorageService.getFileById(fileId);
+        String filename = fileData.getName();
 
-        if (fileData != null) {
-            File file = new File(fileData.getFilePath());
-            byte[] fileContent = fileStorageService.getFileContent(file);
+        com.google.api.services.drive.model.File existedFile = driveService.findFileByName(filename);
+
+        if (existedFile != null) {
+            // File file = new File(fileData.getFilePath());
+            // byte[] fileContent = fileStorageService.getFileContent(file);
+            byte[] fileContent = driveService.getFileStream(existedFile);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentDispositionFormData("attachment", fileData.getName());
             headers.setContentType(MediaType.valueOf(fileData.getType()));
-            // headers.set("Content-Disposition", "attachment; filename=" + fileData.getName());
+            // headers.set("Content-Disposition", "attachment; filename=" +
+            // fileData.getName());
             return new ResponseEntity<>(fileContent, headers, HttpStatus.OK);
         } else {
             return ResponseEntity.notFound().build();

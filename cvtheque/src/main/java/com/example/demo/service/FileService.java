@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +28,11 @@ import com.example.demo.domain.enums.NiveauEtude;
 import com.example.demo.domain.enums.ProfilCandidat;
 import com.example.demo.domain.enums.Source;
 import com.example.demo.Repository.FileDataRepo;
+import com.google.api.client.http.InputStreamContent;
+import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.model.File;
+import com.example.demo.service.DriveService;
+import com.example.demo.domain.GoogleDriveManager;
 
 @Service
 public class FileService {
@@ -33,14 +40,17 @@ public class FileService {
     @Autowired
     private FileDataRepo fileDataRepository;
 
-    
+    @Autowired
+    private DriveService driveService;
 
     // private final String FOLDER_PATH = System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "File" + File.separator;
-    private final String FOLDER_PATH = System.getProperty("user.home") + File.separator + "Files" + File.separator;
+    // private final String FOLDER_PATH = System.getProperty("user.home") + File.separator + "Files" + File.separator;
     private final long MAX_FILE_SIZE_BYTES = 10485759; // 10MB  
 
-    public String storeFile(MultipartFile file, Contrat contrat, Source source, NiveauEtude niveau, Disponibilite disponibilite, ProfilCandidat profil) throws IOException {
+    public String storeFile(MultipartFile file, Contrat contrat, Source source, NiveauEtude niveau, Disponibilite disponibilite, ProfilCandidat profil) throws Exception {
         String response = new String();
+
+        GoogleDriveManager googleDriveManager = new GoogleDriveManager();
 
         // this conditions does not work we deal with it in the controller
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
@@ -59,15 +69,22 @@ public class FileService {
         String fileName = filewithoutextension + '_' + newuuid + '.' + fileExtension;
 
         String fileType = file.getContentType();
-        String filePath = FOLDER_PATH + fileName;
-        LocalDateTime creationDate = LocalDateTime.now();
+        // String filePath = FOLDER_PATH + fileName;
+        String filePath = "Cvtheque/";
+        String folderId = driveService.getFolderId("Cvtheque/");
 
+        LocalDateTime creationDate = LocalDateTime.now();
         FileData fileDataEntity = new FileData(null, fileName, fileType, filePath, creationDate, contrat, source, niveau, disponibilite, profil);
 
         try (InputStream inputStream = file.getInputStream()) {
-            Path targetLocation = Paths.get(filePath);
-            Files.createDirectories(targetLocation.getParent());
-            Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            // Path targetLocation = Paths.get(filePath);
+            // Files.createDirectories(targetLocation.getParent());
+            // Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            File fileMetadata = new File();
+            fileMetadata.setName(fileName);
+            fileMetadata.setParents(Collections.singletonList(folderId));
+
+            File uploadFile = googleDriveManager.getInstance().files().create(fileMetadata, new InputStreamContent(fileType, new ByteArrayInputStream(file.getBytes()))).setFields("id").execute();
         } catch (IOException e) {
             // throw new IOException("Failed to store the file: " + fileName, e);
             response = ("Failed to store the file: " + fileName);
@@ -91,7 +108,7 @@ public class FileService {
         return fileDataRepository.findById(fileId).orElse(null);
     }
 
-    public byte[] getFileContent(File file) throws IOException {
+    public byte[] getFileContent(java.io.File file) throws IOException {
         try (FileInputStream fis = new FileInputStream(file)) {
             return fis.readAllBytes();
         }
