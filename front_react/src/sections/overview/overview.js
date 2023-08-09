@@ -7,6 +7,8 @@ import ArrowUpOnSquareIcon from '@heroicons/react/24/solid/ArrowUpOnSquareIcon';
 import ArrowDownOnSquareIcon from '@heroicons/react/24/solid/ArrowDownOnSquareIcon';
 import PlusCircleIcon from '@heroicons/react/24/solid/PlusCircleIcon';
 import EyeIcon from '@heroicons/react/24/solid/EyeIcon';
+import TrashIcon from '@heroicons/react/24/solid/TrashIcon';
+
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -183,6 +185,34 @@ export const Listcv = (props) => {
       setMetadata(initialMetadata);
   };
 
+  const handleDelete = (cvId) => {
+    axios
+      .delete(`http://localhost:8082/file/delete/${cvId}`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`
+        }
+      })
+      .then((response) => {
+        // Mettez à jour la liste des CVs après la suppression
+        const updatedCvs = cvs.filter((cv) => cv.id !== cvId);
+        setCvs(updatedCvs);
+        toast.success("CV supprimé avec succès", {
+          position: "bottom-left",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      })
+      .catch((error) => {
+        console.error('Erreur lors de la suppression du CV :', error);
+      });
+  };
+  
+
   const handleDownload = (fileId) => {
     const downloadUrl = `http://localhost:8082/file/download/${fileId}`;
     axios
@@ -338,6 +368,7 @@ export const Listcv = (props) => {
         <Button onClick={handleCloseMetadataDialog} color="primary">
           Fermer
         </Button>
+        
       </DialogActions>
     </Dialog>
     <Box
@@ -530,8 +561,20 @@ export const Listcv = (props) => {
                     </SvgIcon>)}
                     onClick={() => handleViewMetadata(cv.id)}
                  >
-                  view
+                  
                 </Button>
+                <Button
+                      color="error"
+                      startIcon={(
+                        <SvgIcon fontSize="small">
+                          <TrashIcon />
+                        </SvgIcon>)}
+                         onClick={() => handleDelete(cv.id)}
+                    
+                      >
+                        </Button>
+                      
+
                 </TableCell>
               </TableRow>
             ))}
