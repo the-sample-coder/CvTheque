@@ -117,4 +117,8 @@ public class FileService {
     public List<FileData> getAllFiles() {
         return fileDataRepository.findAll();
     }
+
+    public void deleteFile(Long fileId) {
+        fileDataRepository.deleteById(fileId);
+    }
 }

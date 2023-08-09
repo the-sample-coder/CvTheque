@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -96,5 +97,20 @@ public class FileController {
     public ResponseEntity<List<FileData>> getAllFiles() {
         List<FileData> files = fileStorageService.getAllFiles();
         return ResponseEntity.ok(files);
+    }
+
+    @DeleteMapping("/delete/{fileId}")
+    public ResponseEntity<String> deleteFile(@PathVariable Long fileId) throws Exception {
+
+        FileData fileData = fileStorageService.getFileById(fileId);
+        String filename = fileData.getName();
+        String file_drive_id = driveService.findFileByName(filename).getId();
+        if(file_drive_id == null) {
+            return ResponseEntity.notFound().build();
+        }else{
+            driveService.deleteFile(file_drive_id);
+            fileStorageService.deleteFile(fileId);
+            return ResponseEntity.ok("File deleted successfully");
+        }
     }
 }
