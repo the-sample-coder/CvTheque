@@ -70,11 +70,10 @@ public class FileService {
 
         String fileType = file.getContentType();
         // String filePath = FOLDER_PATH + fileName;
-        String filePath = "Cvtheque/";
+        String filePath = new String();
         String folderId = driveService.getFolderId("Cvtheque/");
 
         LocalDateTime creationDate = LocalDateTime.now();
-        FileData fileDataEntity = new FileData(null, fileName, fileType, filePath, creationDate, contrat, source, niveau, disponibilite, profil);
 
         try (InputStream inputStream = file.getInputStream()) {
             // Path targetLocation = Paths.get(filePath);
@@ -85,11 +84,16 @@ public class FileService {
             fileMetadata.setParents(Collections.singletonList(folderId));
 
             File uploadFile = googleDriveManager.getInstance().files().create(fileMetadata, new InputStreamContent(fileType, new ByteArrayInputStream(file.getBytes()))).setFields("id").execute();
+            String fileId = uploadFile.getId();
+            filePath = "https://drive.google.com/uc?id=" + fileId; // Google Drive URL to access the file
+        
         } catch (IOException e) {
             // throw new IOException("Failed to store the file: " + fileName, e);
             response = ("Failed to store the file: " + fileName);
             return response;
         }
+        FileData fileDataEntity = new FileData(null, fileName, fileType, filePath, creationDate, contrat, source, niveau, disponibilite, profil);
+
         fileDataRepository.save(fileDataEntity);
         response= "File uploaded successfully with ID: " + fileDataEntity.getId();
         return response;
