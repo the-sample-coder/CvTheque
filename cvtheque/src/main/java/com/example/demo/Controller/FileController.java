@@ -4,14 +4,15 @@ import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Map;
 
+import com.example.demo.Repository.FileDataRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.DeleteMapping;
+
 
 import com.example.demo.domain.FileData;
 import com.example.demo.domain.GoogleDriveManager;
@@ -31,6 +34,7 @@ import com.example.demo.domain.enums.ProfilCandidat;
 import com.example.demo.domain.enums.Source;
 import com.example.demo.service.DriveService;
 import com.example.demo.service.FileService;
+import org.springframework.web.bind.annotation.RequestBody;
 import com.google.api.services.drive.model.FileList;
 
 @RestController
@@ -42,6 +46,9 @@ public class FileController {
 
     @Autowired
     private DriveService driveService;
+
+    @Autowired
+    private FileDataRepo fileDataRepo;
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<String> handleMaxUploadSizeException(MaxUploadSizeExceededException e) {
@@ -101,16 +108,55 @@ public class FileController {
 
     @DeleteMapping("/delete/{fileId}")
     public ResponseEntity<String> deleteFile(@PathVariable Long fileId) throws Exception {
-
+//        fileservive deletyefile
         FileData fileData = fileStorageService.getFileById(fileId);
         String filename = fileData.getName();
         String file_drive_id = driveService.findFileByName(filename).getId();
-        if(file_drive_id == null) {
+        if (file_drive_id == null) {
             return ResponseEntity.notFound().build();
-        }else{
+        } else {
             driveService.deleteFile(file_drive_id);
             fileStorageService.deleteFile(fileId);
             return ResponseEntity.ok("File deleted successfully");
         }
     }
+
+    @PostMapping("/searchByCriteria")
+    public ResponseEntity<List<FileData>> searchByCriteria(@RequestBody Map<String, String> criteria) {
+        Contrat contrat = null;
+        if (criteria.containsKey("contrat")) {
+            contrat = Contrat.valueOf(criteria.get("contrat"));
+        }
+
+        NiveauEtude niveauEtude = null;
+        if (criteria.containsKey("niveauEtude")) {
+            niveauEtude = NiveauEtude.valueOf(criteria.get("niveauEtude"));
+        }
+
+        Disponibilite disponibilite = null;
+        if (criteria.containsKey("disponibilite")) {
+            disponibilite = Disponibilite.valueOf(criteria.get("disponibilite"));
+        }
+
+        ProfilCandidat profil = null;
+        if (criteria.containsKey("profil")) {
+            profil = ProfilCandidat.valueOf(criteria.get("profil"));
+        }
+
+        Source source = null;
+        if (criteria.containsKey("source")) {
+            source = Source.valueOf(criteria.get("source"));
+        }
+
+        List<FileData> cvList = fileDataRepo.findByCriteria(
+                contrat,
+                niveauEtude,
+                disponibilite,
+                profil,
+                source
+        );
+
+        return ResponseEntity.ok(cvList);
+    }
+
 }
