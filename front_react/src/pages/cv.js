@@ -1,38 +1,33 @@
+import React, { useCallback, useMemo, useState } from 'react';
 import axios from 'axios';
-import { useCallback, useMemo, useState } from 'react';
 import Head from 'next/head';
 import ArrowDownOnSquareIcon from '@heroicons/react/24/solid/ArrowDownOnSquareIcon';
-import { Box, Button, Container, Stack, SvgIcon,Typography } from '@mui/material';
-import { useSelection } from 'src/hooks/use-selection';
+import { Box, Button, Container, Stack, SvgIcon, Typography ,  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,Checkbox,} from '@mui/material';
+import { useSelection } from 'src/sections/cv/cv-table';
 import { Layout as DashboardLayout } from 'src/layouts/dashboard/layout';
-import { CvTable } from 'src/sections/cv/cv-table';
 import { CvSearch } from 'src/sections/cv/cv-search';
 import { applyPagination } from 'src/utils/apply-pagination';
 
-const now = new Date();
-
-const data = []; // Your CV data goes here
-
-const useCv = (page, rowsPerPage) => {
-  return useMemo(() => {
-    return applyPagination(data, page, rowsPerPage);
-  }, [page, rowsPerPage]);
-};
-
-const useCvIds = (cv) => {
-  return useMemo(() => {
-    return cv.map((cv) => cv.id);
-  }, [cv]);
-};
-
-const Page = () => {
+const Cv = () => {
   const jwtToken = sessionStorage.getItem('jwt');
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const cv = useCv(page, rowsPerPage);
-  const cvIds = useCvIds(cv);
-  const cvSelection = useSelection(cvIds);
+  const [searchResults, setSearchResults] = useState([]);
+  const cvSelection = useSelection([]);
+  const [selectedCvs, setSelectedCvs] = useState([]); 
+
+  const handleCheckboxChange = (cvId) => {
+    setSelectedCvs((prevSelectedCvs) =>
+      prevSelectedCvs.includes(cvId)
+        ? prevSelectedCvs.filter((id) => id !== cvId)
+        : [...prevSelectedCvs, cvId]
+    );
+  };
 
   const handlePageChange = useCallback((event, value) => {
     setPage(value);
@@ -42,28 +37,22 @@ const Page = () => {
     setRowsPerPage(event.target.value);
   }, []);
 
-  const handleImport = (selectedCvIds) => {
-    selectedCvIds.forEach((cvId) => {
-      const downloadUrl = `http://localhost:8082/file/download/${cvId}`;
-      axios
+  const handleDownload = (fileId) => {
+    const downloadUrl = `http://localhost:8082/file/download/${fileId}`;
+    axios
       .get(downloadUrl, {headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${jwtToken}`
         }, responseType: 'blob' })
       .then((response) => {
         if (response.status === 200) {
-          console.log(response.headers)
-          const filename= response.headers['content-disposition'].split('filename=')[1].trim().replace(/"/g, '');
-          console.log(filename);
-          // Create a blob object from the response data
+          const fileName = response.headers['content-disposition'].split('filename=')[1].replace(/"/g, '');
           const blob = new Blob([response.data], { type: response.headers['content-type'] });
           const url = window.URL.createObjectURL(blob);
-          // window.open(url, '_blank');
-          // window.URL.revokeObjectURL(url);
           const a = document.createElement('a');
           a.style.display = 'none';
           a.href = url;
-          a.setAttribute('download', filename);
+          a.setAttribute('download', fileName);
           document.body.appendChild(a);
           a.click();
           window.URL.revokeObjectURL(url);
@@ -72,7 +61,42 @@ const Page = () => {
           console.log('Error:', response.status, response.statusText);
         }
       })
+  };
+
+  const handleDownloadSelected = () => {
+    if (selectedCvs.length === 0) {
+      toast.error('Veuillez sélectionner au moins un CV pour le télécharger.', {
+        position: "bottom-left",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        });
+      return;
+    }
+  
+    selectedCvs.forEach((cvId) => {
+      handleDownload(cvId);
     });
+  };
+  const handleViewMetadata = (cvId) =>{
+    const selectedCv = cvs.find((cv)=> cv.id === cvId);
+    setSelectedCvMetadata(selectedCv);
+    setMetadataDialogOpen(true);
+  };
+  const handleCloseMetadataDialog = () => {
+    setMetadataDialogOpen(false);
+  };
+
+  const cv = useMemo(() => {
+    return applyPagination(searchResults, page, rowsPerPage);
+  }, [searchResults, page, rowsPerPage]);
+
+  const handleSearchResults = (results) => {
+    setSearchResults(results);
   };
 
   return (
@@ -94,33 +118,39 @@ const Page = () => {
                         <ArrowDownOnSquareIcon />
                       </SvgIcon>
                     )}
-                    onClick={() => handleImport(cvSelection.selected)}
+                    onClick={ handleDownloadSelected}
                   >
                     Télécharger
                   </Button>
-                  
-                  {/* <Button color="primary" startIcon={<ArchiveBoxIcon />}>
-                    Delete
-                  </Button> */}
                 </Stack>
               </Stack>
-              <div></div>
             </Stack>
-            <CvSearch />
-            <CvTable
-              count={data.length}
-              items={cv}
-              onDeselectAll={cvSelection.handleDeselectAll}
-              onDeselectOne={cvSelection.handleDeselectOne}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              onSelectAll={cvSelection.handleSelectAll}
-              onSelectOne={cvSelection.handleSelectOne}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              selected={cvSelection.selected}
-              onImport={handleImport}
-            />
+            <CvSearch onSearchResults={handleSearchResults} />
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Selectionner</TableCell> {/* Nouvelle colonne pour la checkbox */}
+              <TableCell>Nom du CV</TableCell>
+           
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {cv.map((cv) => (
+              <TableRow key={cv.id}>
+                <TableCell>
+                  {/* Utilisez la balise Checkbox de MUI */}
+                  <Checkbox
+                    checked={selectedCvs.includes(cv.id)}
+                    onChange={() => handleCheckboxChange(cv.id)}
+                  />
+                </TableCell>
+                <TableCell>{cv.name}</TableCell>
+              
+          
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
           </Stack>
         </Container>
       </Box>
@@ -128,6 +158,6 @@ const Page = () => {
   );
 };
 
-Page.getLayout = (page) => <DashboardLayout>{page}</DashboardLayout>;
+Cv.getLayout = (page) => <DashboardLayout>{page}</DashboardLayout>;
 
-export default Page;
+export default Cv;
