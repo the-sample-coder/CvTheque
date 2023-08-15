@@ -21,9 +21,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
 
 import com.example.demo.domain.FileData;
-import com.example.demo.domain.GoogleDriveManager;
 import com.example.demo.domain.enums.Contrat;
 import com.example.demo.domain.enums.Disponibilite;
 import com.example.demo.domain.enums.NiveauEtude;
@@ -31,7 +31,9 @@ import com.example.demo.domain.enums.ProfilCandidat;
 import com.example.demo.domain.enums.Source;
 import com.example.demo.service.DriveService;
 import com.example.demo.service.FileService;
-import com.google.api.services.drive.model.FileList;
+import com.example.demo.Repository.FileDataRepo;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 @RequestMapping("/file")
@@ -42,6 +44,9 @@ public class FileController {
 
     @Autowired
     private DriveService driveService;
+
+    @Autowired
+    private FileDataRepo fileDataRepo;
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<String> handleMaxUploadSizeException(MaxUploadSizeExceededException e) {
@@ -56,10 +61,9 @@ public class FileController {
             @RequestParam(value = "niveau", required = false) String niveauStr,
             @RequestParam(value = "disponibilite", required = false) String disponibiliteStr,
             @RequestParam(value = "profil", required = false) String profilStr) throws Exception {
-        System.out.println("Received upload request.");
 
-        // Convert the nullable fields from String to the corresponding enumeration
-        // types
+        System.out.println("Received upload request.");
+        // Convert the nullable fields from String to the corresponding enumeration types
         Contrat contrat = contratStr != null ? Contrat.valueOf(contratStr) : null;
         Source source = sourceStr != null ? Source.valueOf(sourceStr) : null;
         NiveauEtude niveau = niveauStr != null ? NiveauEtude.valueOf(niveauStr) : null;
@@ -67,26 +71,24 @@ public class FileController {
         ProfilCandidat profil = profilStr != null ? ProfilCandidat.valueOf(profilStr) : null;
 
         String response = fileStorageService.storeFile(file, contrat, source, niveau, disponibilite, profil);
-        return ResponseEntity.ok(response);
+        if(response.contains("extension")) {
+            return ResponseEntity.status(400).body(response);
+        }else{
+            return ResponseEntity.status(200).body(response);
+        }
     }
 
     @GetMapping("/download/{fileId}")
     public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) throws IOException, GeneralSecurityException {
         FileData fileData = fileStorageService.getFileById(fileId);
-        String filename = fileData.getName();
-
-        com.google.api.services.drive.model.File existedFile = driveService.findFileByName(filename);
+        com.google.api.services.drive.model.File existedFile = driveService.findFileByName(fileStorageService.getFileById(fileId).getName());
 
         if (existedFile != null) {
-            // File file = new File(fileData.getFilePath());
-            // byte[] fileContent = fileStorageService.getFileContent(file);
             byte[] fileContent = driveService.getFileStream(existedFile);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentDispositionFormData("attachment", fileData.getName());
             headers.setContentType(MediaType.valueOf(fileData.getType()));
-            // headers.set("Content-Disposition", "attachment; filename=" +
-            // fileData.getName());
             return new ResponseEntity<>(fileContent, headers, HttpStatus.OK);
         } else {
             return ResponseEntity.notFound().build();
@@ -101,16 +103,27 @@ public class FileController {
 
     @DeleteMapping("/delete/{fileId}")
     public ResponseEntity<String> deleteFile(@PathVariable Long fileId) throws Exception {
-
-        FileData fileData = fileStorageService.getFileById(fileId);
-        String filename = fileData.getName();
-        String file_drive_id = driveService.findFileByName(filename).getId();
-        if(file_drive_id == null) {
-            return ResponseEntity.notFound().build();
+        // the id that takes the method delete is the id of the table file_data
+        String response = fileStorageService.deleteFile(fileId);
+        if(response != null){
+            return ResponseEntity.status(200).body(response);
         }else{
-            driveService.deleteFile(file_drive_id);
-            fileStorageService.deleteFile(fileId);
-            return ResponseEntity.ok("File deleted successfully");
+            return ResponseEntity.status(404).body(response);
         }
     }
+
+    @PostMapping("/searchByCriteria")
+    public ResponseEntity<List<FileData>> searchByCriteria(@RequestBody Map<String, String> criteria) {
+        Contrat contrat = criteria.containsKey("contrat") ? Contrat.valueOf(criteria.get("contrat")) : null;
+        Source source = criteria.containsKey("source") ? Source.valueOf(criteria.get("source")) : null;
+        NiveauEtude niveauEtude = criteria.containsKey("niveau") ? NiveauEtude.valueOf(criteria.get("niveau")) : null;
+        Disponibilite disponibilite = criteria.containsKey("disponibilite") ? Disponibilite.valueOf(criteria.get("disponibilite")) : null;
+        ProfilCandidat profil = criteria.containsKey("profil") ? ProfilCandidat.valueOf(criteria.get("profil")) : null;
+        
+        List<FileData> cvList = fileDataRepo.findByCriteria(contrat, niveauEtude, disponibilite, profil, source);
+
+        return ResponseEntity.ok(cvList);
+        
+    }
+    
 }

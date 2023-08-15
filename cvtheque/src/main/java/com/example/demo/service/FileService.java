@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.GeneralSecurityException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -48,7 +49,7 @@ public class FileService {
     private final long MAX_FILE_SIZE_BYTES = 10485759; // 10MB  
 
     public String storeFile(MultipartFile file, Contrat contrat, Source source, NiveauEtude niveau, Disponibilite disponibilite, ProfilCandidat profil) throws Exception {
-        String response = new String();
+        String response = "";
 
         GoogleDriveManager googleDriveManager = new GoogleDriveManager();
 
@@ -70,7 +71,7 @@ public class FileService {
 
         String fileType = file.getContentType();
         // String filePath = FOLDER_PATH + fileName;
-        String filePath = new String();
+        String filePath = "";
         String folderId = driveService.getFolderId("Cvtheque/");
 
         LocalDateTime creationDate = LocalDateTime.now();
@@ -122,7 +123,21 @@ public class FileService {
         return fileDataRepository.findAll();
     }
 
-    public void deleteFile(Long fileId) {
+    public void deleteFileFromDB(Long fileId) {
         fileDataRepository.deleteById(fileId);
+    }
+
+    public String deleteFile(Long fileId) throws Exception{
+        FileData fileData = fileDataRepository.findById(fileId).orElse(null);
+        String filename= fileData.getName();
+        String file_drive_id= driveService.findFileByName(filename).getId();
+
+        if (file_drive_id != null) {
+            driveService.deleteFileFromDrive(file_drive_id);
+            fileDataRepository.deleteById(fileId);
+            return "File deleted successfully";
+        }else{
+            return null;
+        }
     }
 }

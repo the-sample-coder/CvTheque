@@ -54,7 +54,7 @@ public class DriveService {
         }
     }
 
-    public void deleteFile(String fileId) throws Exception {
+    public void deleteFileFromDrive(String fileId) throws Exception {
         googleDriveManager.getInstance().files().delete(fileId).execute();
     }
 
