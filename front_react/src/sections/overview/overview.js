@@ -142,18 +142,6 @@ export const Listcv = (props) => {
         }
       })
       .then((response) => {
-        if(response.data.includes('Invalid file extension')){
-          toast.error("Extension de fichier invalide. Seuls les fichiers Word et PDF sont autorisés", {
-            position: "bottom-left",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-          });
-        }else{
           toast.success("CV importé avec succès", {
             position: "bottom-left",
             autoClose: 5000,
@@ -164,7 +152,7 @@ export const Listcv = (props) => {
             progress: undefined,
             theme: "light",
           });
-        }      // After successful upload, refresh the list of CVs by making the API call again
+        // After successful upload, refresh the list of CVs by making the API call again
         axios
           .get('http://localhost:8082/file/list', {headers: {
             'Content-Type': 'application/json',
@@ -178,7 +166,18 @@ export const Listcv = (props) => {
           });
       })
       .catch((error) => {
-        console.error('Erreur lors de l\'importation du CV :', error);
+        if(error.response.data.includes("Invalid file extension") && error.response.status==400){
+          toast.error("Extension de fichier invalide. Seuls les fichiers Word et PDF sont autorisés", {
+            position: "bottom-left",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
+        }
       });
     }
     
